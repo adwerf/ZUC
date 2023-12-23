@@ -12,9 +12,9 @@ R1=0
 R2=0
 W=0
 Z=0
-m32=pow(2,32)
+m32=4294967296				
 
-test_times = 1
+test_times = 100
 
 def ZUC256_MAKEU31(a, b, c, d):
     return ((a << 23) | (b << 16) | (c << 8) | (d))
@@ -26,16 +26,16 @@ def BitReconstruction():
     X[3]=add(S[2],S[0])
 
 def LFSRWithInitMode(u):
-    v=(2**15*S[15]+2**17*S[13]+2**21*S[10]+2**20*S[4]+(1+2**8)*S[0])%(2**31-1)
-    S.append((v+u)%(2**31-1))
+    v=(32768*S[15]+131072*S[13]+2097152*S[10]+1048576*S[4]+(257)*S[0])%(2147483647)
+    S.append((v+u)%2147483647)
     if S[16] == 0:
-        S[16]=2**31-1
+        S[16]=2147483647
     S.pop(0)
 
 def LFSRWithWorkMode():
-    S.append((2 ** 15 * S[15] + 2 ** 17 * S[13] + 2 ** 21 * S[10] + 2 ** 20 * S[4] + (1 + 2 ** 8) * S[0]) % (2 ** 31 - 1))
+    S.append((32768 * S[15] + 131072 * S[13] + 2097152 * S[10] + 1048576 * S[4] + (257) * S[0]) % (2147483647))
     if S[16] == 0:
-        S[16] = 2 ** 31 - 1
+        S[16] = 2147483647
     S.pop(0)
 
 def F(X0,X1,X2):
@@ -43,8 +43,6 @@ def F(X0,X1,X2):
     W=mod32(X0 ^ R1, R2)
     W1=mod32(R1,X1)
     W2=R2 ^ X2
-    print(hex(W1))
-    print(hex(W2))
     R1=S_(L1(((W1<<16) | (W2>>16)) & 0xffffffff))
     R2=S_(L2(((W2<<16) | (W1>>16)) & 0xffffffff))
 
@@ -59,20 +57,29 @@ def S_(X):
     bit8[1]=(X>>16)&0xff
     bit8[2]=(X>>8)&0xff
     bit8[3]=X&0xff
-    for i in range(4):
-        row = bit8[i] >> 4 
-        nuw = bit8[i] & 0xf
-        if i == 0 or i == 2:
-            result[i]=S0[row] [nuw]
-        else:
-            result[i]=S1[row] [nuw]
-        ans = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | result[3] 
+    row = bit8[0] >> 4
+    nuw = bit8[0] & 0xf
+    result[0] = S0[row][nuw]
+    ans = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | result[3]
+    row = bit8[1] >> 4
+    nuw = bit8[1] & 0xf
+    result[1] = S1[row][nuw]
+    ans = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | result[3]
+    row = bit8[2] >> 4
+    nuw = bit8[2] & 0xf
+    result[2] = S0[row][nuw]
+    ans = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | result[3]
+    row = bit8[3] >> 4
+    nuw = bit8[3] & 0xf
+    result[3] = S1[row][nuw]
+    ans = (result[0] << 24) | (result[1] << 16) | (result[2] << 8) | result[3]
+
     return ans
 
 def rot(X,i):
-    return ((X<<i)& 0xffffffff)|(X>>(32-i))
+    return ((X<<i)&0xffffffff)|(X>>(32-i))
 def mod32 (R,X):
-    return (R + X)%m32
+    return (R + X)&0xffffffff
 def H(X):
     bits=(X>>15) & 0xffff
     return bits
@@ -156,6 +163,4 @@ if __name__ == '__main__':
         str = "Success"
     else:
         str = "Failed"
-
-    print(timer)
     print(str)
